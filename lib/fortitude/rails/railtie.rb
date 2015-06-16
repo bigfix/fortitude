@@ -68,14 +68,14 @@ module Fortitude
         # path (<tt>app/views</tt>).
 
         # Go compute our views root.
-        views_root = File.expand_path(File.join(::Rails.root, 'app', 'views'))
+        views_roots = ::Rails.application.paths['app/views'].expanded
 
         # Now, do all this work inside ::ActiveSupport::Dependencies...
         ::ActiveSupport::Dependencies.module_eval do
-          @@_fortitude_views_root = views_root
+          @@_fortitude_views_roots = views_roots
 
-          def self._fortitude_views_root
-            @@_fortitude_views_root
+          def self._fortitude_views_roots
+            @@_fortitude_views_roots
           end
 
           # This is the method that gets called to auto-generate namespacing empty
@@ -97,8 +97,13 @@ module Fortitude
               # If we got here, then we were passed a subpath of views/....
               subpath = $1
 
-              if subpath.blank? || File.directory?(File.join(@@_fortitude_views_root, subpath))
-                return @@_fortitude_views_root
+              if subpath.blank?
+                # This should be the Rails default views dir...
+                return @@_fortitude_views_roots.first
+              else
+                @@_fortitude_views_roots.each do |load_path|
+                  return load_path if File.directory? File.join(load_path, subpath)
+                end
               end
             end
 
@@ -116,7 +121,7 @@ module Fortitude
           # that we set to the actual underlying variable.
           def with_fortitude_views_removed_from_autoload_path
             begin
-              Thread.current[:_fortitude_autoload_paths_override] = autoload_paths - [ @@_fortitude_views_root ]
+              Thread.current[:_fortitude_autoload_paths_override] = autoload_paths - @@_fortitude_views_roots
               yield
             ensure
               Thread.current[:_fortitude_autoload_paths_override] = nil
@@ -145,32 +150,34 @@ module Fortitude
             # Remove any ".rb" extension, if present...
             new_path_suffix = path_suffix.sub(/(\.rb)?$/, "")
 
-            found_subpath = if new_path_suffix =~ %r{^views(/.*)$}i
-              $1
-            elsif new_path_suffix =~ %r{^#{Regexp.escape(@@_fortitude_views_root)}(/.*)$}i
-              $1
-            end
+            @@_fortitude_views_roots.each do |views_root|
+              found_subpath = if new_path_suffix =~ %r{^views(/.*)$}i
+                $1
+              elsif new_path_suffix =~ %r{^#{Regexp.escape(views_root)}(/.*)$}i
+                $1
+              end
 
-            if found_subpath
-              full_path = File.join(@@_fortitude_views_root, "#{found_subpath}")
-              directory = File.dirname(full_path)
+              if found_subpath
+                full_path = File.join(views_root, "#{found_subpath}")
+                directory = File.dirname(full_path)
 
-              if File.directory?(directory)
-                filename = File.basename(full_path)
+                if File.directory?(directory)
+                  filename = File.basename(full_path)
 
-                regexp1 = /^_?#{Regexp.escape(filename)}\./
-                regexp2 = /\.rb$/i
-                applicable_entries = Dir.entries(directory).select do |entry|
-                  ((entry == filename) || (entry =~ regexp1 && entry =~ regexp2)) && File.file?(File.join(directory, entry))
+                  regexp1 = /^_?#{Regexp.escape(filename)}\./
+                  regexp2 = /\.rb$/i
+                  applicable_entries = Dir.entries(directory).select do |entry|
+                    ((entry == filename) || (entry =~ regexp1 && entry =~ regexp2)) && File.file?(File.join(directory, entry))
+                  end
+                  return nil if applicable_entries.length == 0
+
+                  # Prefer those without an underscore
+                  without_underscore = applicable_entries.select { |e| e !~ /^_/ }
+                  applicable_entries = without_underscore if without_underscore.length > 0
+
+                  entry_to_use = applicable_entries.sort_by { |e| e.length }.reverse.first
+                  return File.join(directory, entry_to_use)
                 end
-                return nil if applicable_entries.length == 0
-
-                # Prefer those without an underscore
-                without_underscore = applicable_entries.select { |e| e !~ /^_/ }
-                applicable_entries = without_underscore if without_underscore.length > 0
-
-                entry_to_use = applicable_entries.sort_by { |e| e.length }.reverse.first
-                return File.join(directory, entry_to_use)
               end
             end
 
@@ -208,19 +215,21 @@ module Fortitude
           end
 
           def eager_load_fortitude_views!
-            load_path = ::ActiveSupport::Dependencies._fortitude_views_root
-            all_files = Dir.glob("#{load_path}/**/*.rb")
-            matcher = /\A#{Regexp.escape(load_path.to_s)}\/(.*)\.rb\Z/
+            load_paths = ::ActiveSupport::Dependencies._fortitude_views_roots
+            load_paths.each do |load_path|
+              all_files = Dir.glob("#{load_path}/**/*.rb")
+              matcher = /\A#{Regexp.escape(load_path.to_s)}\/(.*)\.rb\Z/
 
-            all_files.sort.each do |full_path|
-              filename = File.basename(full_path, ".rb")
-              directory = File.dirname(full_path)
+              all_files.sort.each do |full_path|
+                filename = File.basename(full_path, ".rb")
+                directory = File.dirname(full_path)
 
-              longer_name_regex = /^#{Regexp.escape(filename)}\..+\.rb$/i
-              longer_name = Dir.entries(directory).detect { |e| e =~ longer_name_regex }
+                longer_name_regex = /^#{Regexp.escape(filename)}\..+\.rb$/i
+                longer_name = Dir.entries(directory).detect { |e| e =~ longer_name_regex }
 
-              unless longer_name
-                require_dependency File.join('views', full_path.sub(matcher, '\1'))
+                unless longer_name
+                  require_dependency File.join('views', full_path.sub(matcher, '\1'))
+                end
               end
             end
           end
@@ -229,7 +238,7 @@ module Fortitude
         end
 
         # And, finally, this is where we add our root to the set of autoload paths.
-        ::ActiveSupport::Dependencies.autoload_paths << views_root
+        ::ActiveSupport::Dependencies.autoload_paths += views_roots
         # app.config.eager_load_paths << views_root
 
         # This is our support for partials. Fortitude doesn't really have a distinction between
