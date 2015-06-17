@@ -5,6 +5,17 @@ module Fortitude
         def helper(name, options = { })
           @helpers ||= { }
           @helpers[name] = options
+
+          # In order to properly handle nesting helpers that defined output_yielded_methods, we need to maintain a
+          # set of these helpers that can be referenced as they are called
+          if options[:output_yielded_methods]
+            @yielding_helpers ||= { }
+            @yielding_helpers[name] = true
+          end
+        end
+
+        def is_yielding_helper?(name)
+          @yielding_helpers[name.to_sym]
         end
 
         def helper_options(name)
