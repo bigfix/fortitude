@@ -1,5 +1,22 @@
 # Fortitude Releases
 
+## 0.9.5,
+
+* Significant improvements in performance to our dispatching to #t, the Rails method to produce translations of
+  localized strings. Localized Rails applications tend to use this method a _lot_, so its performance can have a
+  big impact on overall application performance.
+* A much better error message if you try to declare a method `static` when it hasn't been defined yet &mdash; this
+  can often be the result of putting the `static` declaration above the method definition in the source file,
+  rather than below it. (Thanks to [`tobymao`](https://github.com/tobymao) for the bug report!)
+* Updated versions of Ruby and Rails that Travis CI tests against to the very latest.
+* Fixed an issue where Fortitude wasn't properly respecting Rails' view paths. Fortitude templates could be found at
+  alternate view paths, but our trick of namespacing views under `Views::` wouldn't apply. Now, it all works
+  perfectly. (Thanks to [Karl He](https://github.com/karlhe) for the bug report and example patch!)
+* Fixed an issue where `#block_given?` always returned `true` inside a Fortitude widget's `#content` method, whether
+  a block was supplied to it or not. (Thanks to [Jeff Dickey](https://github.com/jdickey) for the bug report!)
+* Fixed an incompatibility between Fortitude and Rails 4.2.5.1, since Rails 4.2.5.1 added a fifth parameter to
+  `ActionView::PathResolver#find_templates`. (Thanks to [Luke Francl](https://github.com/look) for the bug report!)
+
 ## 0.9.4, 11 February 2015
 
 * Fixed an issue where use of Rails' `form_for` or `fields_for` from within another `form_for` or `fields_for` block

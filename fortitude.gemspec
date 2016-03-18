@@ -31,8 +31,14 @@ Gem::Specification.new do |s|
     [ ">= 3.0" ]
   end
 
+  ref_spec = if RUBY_VERSION =~ /^1\.8\./
+    [ ">= 1.0.5", "< 2.0.0" ]
+  else
+    [ ">= 1.0.5" ]
+  end
+
   s.add_dependency "activesupport", *activesupport_spec
-  s.add_dependency "ref", ">= 1.0.5"
+  s.add_dependency "ref", *ref_spec
 
   s.add_development_dependency "bundler", "~> 1.5"
   s.add_development_dependency "rake"
@@ -40,10 +46,15 @@ Gem::Specification.new do |s|
   s.add_development_dependency "rake-compiler"
   s.add_development_dependency "json"
   s.add_development_dependency "tilt", "~> 2.0"
-  s.add_development_dependency "oop_rails_server", ">= 0.0.7"
+  s.add_development_dependency "oop_rails_server", ">= 0.0.15"
 
   # This is because i18n >= 0.7 is incompatible with Ruby 1.8.x.
   if RUBY_VERSION =~ /^1\.8\./
     s.add_development_dependency "i18n", "~> 0.6.0", "< 0.7.0"
+  end
+
+  # This is because 'tins' >= 1.7.0 is incompatible with Ruby < 2.0.0.
+  if RUBY_VERSION =~ /^1\./
+    s.add_development_dependency "tins", "< 1.7.0"
   end
 end

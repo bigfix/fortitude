@@ -2,6 +2,8 @@
 
 Fortitude is written by [Andrew Geweke](https://github.com/ageweke), with contributions from:
 
+* [`tobymao`](https://github.com/tobymao): reporting a bug where trying to declare a method `static` before it's been
+  defined resulted in a confusing error.
 * [Ahto Jussila](https://github.com/ahto): a patch to provide separate MRI and JRuby gems, so that
   `gem install fortitude` works properly no matter which platform you're on.
 * [Roman Heinrich](https://github.com/mindreframer): reporting a bug where trying to use Fortitude as a Tilt
@@ -41,3 +43,12 @@ Fortitude is written by [Andrew Geweke](https://github.com/ageweke), with contri
   * Discussion and details around exactly what `:attribute => true`, `:attribute => false`, and so on should render
     from Fortitude.
   * Reporting an issue where you could not easily render a Fortitude widget from Erector, nor vice-versa.
+* [Karl He](https://github.com/karlhe) for:
+  * Reporting an issue (and supplying an example patch) where Fortitude wasn't respecting Rails' additional view
+    paths correctly &mdash; only `app/views`.
+* [Jeff Dickey](https://github.com/jdickey) for:
+  * Reporting an issue where `#block_given?` inside a Fortitude widget's `#content` method returned `true` always,
+    whether or not there was anything to yield to.
+* [Luke Francl](https://github.com/look) for:
+  * Reporting an incompatibility between Fortitude and Rails 4.2.5.1, and discovering the underlying cause (a fifth
+    parameter added to `ActionView::PathResolver#find_templates`.)
