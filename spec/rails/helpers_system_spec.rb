@@ -2,10 +2,28 @@ describe "Rails helper support", :type => :rails do
   uses_rails_with_template :helpers_system_spec
 
   it "should support the built-in Rails helpers by default" do
+    skip("Rails 3.1 fails on this test with Ruby 2.3 only") if rails_server.actual_rails_version =~ /^3\.1\./ && RUBY_VERSION =~ /^2\.3\./
     expect_match("basic_helpers",
       /Three months ago: 3 months/mi,
       /A million dollars: \$1,000,000\.00/mi,
       %r{Select datetime:\s*<select.*name="date.*>.*<option.*value="2014".*</option>}mi)
+  end
+
+  it 'should support built-in Rails helpers even when automatic_helper_access is false' do
+    expect_match("rails_helpers_without_automatic_helper_access",
+                 /Excitedly: NoMethodError/mi,
+                 /Three months ago: 3 months/mi,
+                 /A million dollars: \$1,000,000\.00/mi,
+                 /class=["']debug_dump["']/mi)
+  end
+
+  it 'should support url helpers even when automatic_helper_access is false' do
+    expect_match('url_helpers_without_automatic_helper_access',
+                 /Excitedly: NoMethodError/mi,
+                 /Root Path: \//,
+                 /Foo Path: \/foo/,
+                 /Foo Url: http:\/\/example.com(:\d+)?\/foo/,
+                 /Foo Url with host override: http:\/\/override.com(:\d+)?\/foo/)
   end
 
   it "should refine the built-in Rails helpers by default" do
@@ -65,11 +83,11 @@ describe "Rails helper support", :type => :rails do
   end
 
   it "should allow turning off automatic helper access" do
-    expect_match("automatic_helpers_disabled", %r{excitedly: NoMethodError; time_ago_in_words: NoMethodError; number_to_currency: \$1,000,000.00})
+    expect_match("automatic_helpers_disabled", %r{excitedly: NoMethodError; time_ago_in_words: 3 months; number_to_currency: \$1,000,000.00})
   end
 
   it "should inherit automatic helper access properly" do
-    expect_match("automatic_helpers_inheritance", %r{C1: excitedly: NoMethodError; time_ago_in_words: NoMethodError; number_to_currency: \$1,000,000.00.*C2: excitedly: awesome!!!; time_ago_in_words: 3 months; number_to_currency: \$1,000,000.00})
+    expect_match("automatic_helpers_inheritance", %r{C1: excitedly: NoMethodError; time_ago_in_words: 3 months; number_to_currency: \$1,000,000.00.*C2: excitedly: awesome!!!; time_ago_in_words: 3 months; number_to_currency: \$1,000,000.00})
   end
 
   it "should allow access to private helpers in exactly the same way as ERb" do

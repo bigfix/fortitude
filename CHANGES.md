@@ -1,7 +1,19 @@
 # Fortitude Releases
 
-## 0.9.5,
+## 0.9.6, 21 October 2016
 
+* Generator support: generation of controllers, mailers, and scaffolding will now produce nice Fortitude views
+  instead of ERb views. (You can add `-e erb` to your `rails generate` command line to switch back to ERb if
+  desired.) Thanks to [Gaelan](https://github.com/Gaelan) for the suggestion!
+* Fixed an issue where if you tried to invoke methods on the object yielded to a `form_for` call or similar
+  by using `send` instead of calling it directly (_e.g._, `form_for(...) do |f|`, then `f.send(:text_field, ...)`
+  instead of `f.text_field ...`), the method invocation would appear to be ignored.
+* Fixed an issue where Rails `_url`/`_path` helpers didn't correctly pick up parameters set from the incoming
+  request. (Thanks to [Adam Becker](https://github.com/ajb) for the bug report!)
+
+## 0.9.5, 12 October 2016
+
+* Rails 5 compatibility: Fortitude now is fully compatible with Rails 5.0.0.1.
 * Significant improvements in performance to our dispatching to #t, the Rails method to produce translations of
   localized strings. Localized Rails applications tend to use this method a _lot_, so its performance can have a
   big impact on overall application performance.
@@ -16,6 +28,32 @@
   a block was supplied to it or not. (Thanks to [Jeff Dickey](https://github.com/jdickey) for the bug report!)
 * Fixed an incompatibility between Fortitude and Rails 4.2.5.1, since Rails 4.2.5.1 added a fifth parameter to
   `ActionView::PathResolver#find_templates`. (Thanks to [Luke Francl](https://github.com/look) for the bug report!)
+* Fixed incompatibilities with more-recently released versions of gems (`uglifier`, `rake`, `activesupport`) that
+  otherwise broke compatibility with previous Ruby versions.
+* Fixed an issue where Fortitude’s system for figuring out what the name of a Fortitude widget would be, based on its
+  filename, could be confused by filenames ending in other extensions before `.rb` (for example, `.html.rb`).
+* Eliminated a deprecation warning from Rails 5 caused by Fortitude's use of `render :text` internally.
+* Removed usage of `alias_method_chain` on Ruby 2.0 and later, in favor of `Module#prepend`. This removes deprecation
+  warnings otherwise triggered by Rails 5. (Using `Module#prepend` causes problems in JRuby, so `alias_method_chain`
+  is still used on JRuby instead.)
+* Changed the behavior of `automatic_helper_access false` so that, in a Rails application, it still makes all the
+  built-in Rails helpers properly accessible, but does not make user-defined helpers accessible. (If there are even
+  certain built-in Rails helpers you don’t want people using, you can easily override them in your widget class to
+  raise an exception.) Without this, `automatic_helper_access false` became so cumbersome to use that it was nearly
+  pointless. (Thanks to [Matt Walters](https://github.com/mattwalters) for the pull request!)
+* Fixed an issue where explicitly declaring an assignment method as a helper (_e.g._, `helper :foo=`) did not work
+  properly.
+* Fixed an issue where passing a block to (_e.g._) `f.label`, where `f` is the object yielded to a `form_for` helper,
+  did not work properly. (Thanks to [Adam Becker](https://github.com/ajb) for the bug report and test case!)
+* Reduced escaping in attribute values: only `"` and `&` need to be escaped, not `<`, `>`, or `'`. (Thanks to
+  [Adam Becker](https://github.com/ajb) for the bug report!)
+* Fixed an issue where, under certain extremely rare circumstances, adding a view path in the controller (using
+  [`ActionView::ViewPaths.append_view_path`](http://api.rubyonrails.org/classes/ActionView/ViewPaths/ClassMethods.html#method-i-prepend_view_path)
+  and related methods) would not be able to figure out the proper class name of the widget, and would fail. (Thanks
+  to [Leaf](https://github.com/leafo) for the bug report!)
+* Added the ability for the `inline_html` method on a widget class to accept a `Fortitude::RenderingContext`, thus
+  allowing you to use it with code requiring access to helpers. (Thanks to [Adam Becker](https://github.com/ajb) for
+  the bug report!)
 
 ## 0.9.4, 11 February 2015
 

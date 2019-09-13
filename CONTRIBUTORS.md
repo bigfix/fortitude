@@ -39,10 +39,23 @@ Fortitude is written by [Andrew Geweke](https://github.com/ageweke), with contri
     a memory leak.
   * Reporting an issue where use of Rails' `form_for` and/or `fields_for` from within another `form_for` or
     `fields_for` block would not produce the correct output.
+  * Reporting an issue where, under certain extremely rare circumstances, adding a view path in the controller (using
+    [`ActionView::ViewPaths.append_view_path`](http://api.rubyonrails.org/classes/ActionView/ViewPaths/ClassMethods.html#method-i-prepend_view_path)
+    and related methods) would not be able to figure out the proper class name of the widget, and would fail.
 * [Adam Becker](https://github.com/ajb) for:
   * Discussion and details around exactly what `:attribute => true`, `:attribute => false`, and so on should render
     from Fortitude.
   * Reporting an issue where you could not easily render a Fortitude widget from Erector, nor vice-versa.
+  * Fixes for compatibility with Rails 5.
+  * Fix for a deprecation warning from Rails 5 caused by Fortitude's use of `render :text` internally.
+  * Reporting an issue and providing a test case and patch for an issue where calling `f.label` with a block, where
+    `f` is the object yielded to Rails' `form_for`, would cause an exception from Fortitude.
+  * Reporting an issue where Fortitude was escaping characters that it didn’t need to in attribute values
+    (specifically, `<`, `>`, and `'`).
+  * Reporting an issue where you couldn't use `inline_html` in a way that allowed you to pass a
+    `Fortitude::RenderingContext`, thus preventing you from using it with code that required access to helpers.
+  * Reporting an issue where Rails' `_url`/`_path` helpers wouldn't pick up parameters set from the inbound request
+    correctly.
 * [Karl He](https://github.com/karlhe) for:
   * Reporting an issue (and supplying an example patch) where Fortitude wasn't respecting Rails' additional view
     paths correctly &mdash; only `app/views`.
@@ -52,3 +65,9 @@ Fortitude is written by [Andrew Geweke](https://github.com/ageweke), with contri
 * [Luke Francl](https://github.com/look) for:
   * Reporting an incompatibility between Fortitude and Rails 4.2.5.1, and discovering the underlying cause (a fifth
     parameter added to `ActionView::PathResolver#find_templates`.)
+* [Victor Lymar](https://github.com/vlymar) for:
+  * Fixes for compatibility with Rails 5.
+* [Matt Walters](https://github.com/mattwalters) for:
+  * A patch to make built-in Rails helpers work even when `automatic_helper_access` was set to `false`.
+* [Gaelan](https://github.com/Gaelan) for:
+  * Suggesting generator support for Fortitude.

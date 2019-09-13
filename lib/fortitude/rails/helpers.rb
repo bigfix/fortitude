@@ -19,15 +19,91 @@ module Fortitude
         end
 
         def helper_options(name)
-          @helpers[name.to_s.strip.downcase.to_sym]
+          @helpers[normalize_helper_name(name)]
         end
 
         def apply_refined_helpers_to!(o)
           @helpers.each do |name, options|
             o.helper(name, options)
           end
+
+          url_helpers_module = ::Rails.application.routes.url_helpers
+
+          test_base_class = Class.new
+          test_base_instance = test_base_class.new
+
+          test_class = Class.new
+          test_class.send(:include, url_helpers_module)
+          test_instance = test_class.new
+
+          metaclass = o.instance_eval("class << self; self; end")
+
+          metaclass.send(:define_method, :_fortitude_allow_helper_even_without_automatic_helper_access?) do |method_name|
+            test_instance.respond_to?(method_name) && (! test_base_instance.respond_to?(method_name))
+          end
+        end
+
+        ALL_BUILTIN_HELPER_MODULES = {
+          ActionView::Helpers => %w{
+            ActiveModelHelper
+            ActiveModelInstanceTag
+            AssetTagHelper
+            AssetUrlHelper
+            AtomFeedHelper
+            CacheHelper
+            CaptureHelper
+            CsrfHelper
+            DateHelper
+            DebugHelper
+            FormHelper
+            FormOptionsHelper
+            FormTagHelper
+            JavaScriptHelper
+            NumberHelper
+            OutputSafetyHelper
+            RecordTagHelper
+            SanitizeHelper
+            TagHelper
+            TextHelper
+            TranslationHelper
+            UrlHelper
+          }
+        }
+
+        # We could use the mechanism used above for the url_helpers_module, but this makes access to these helpers
+        # much faster -- they end up with real methods defined for them, instead of using method_missing magic
+        # every time. We don't necessarily want to do that for the url_helpers_module, because there can be tons and
+        # tons of methods in there...and because we initialize early-enough on that methods aren't defined there yet,
+        # anyway.
+        def declare_all_builtin_rails_helpers!
+          ALL_BUILTIN_HELPER_MODULES.each do |base_module, constant_names|
+            constant_names.each do |constant_name|
+              if base_module.const_defined?(constant_name)
+                helper_module = base_module.const_get(constant_name)
+                helper_module.public_instance_methods.each do |helper_method_name|
+                  # This is because ActionView::Helpers::FormTagHelper exposes #embed_authenticity_token_in_remote_forms=
+                  # as a public instance method. This seems like it should not be included as a helper.
+                  # next if helper_method_name.to_s == 'embed_authenticity_token_in_remote_forms='
+                  helper helper_method_name
+                end
+              end
+            end
+          end
+
+          helper :default_url_options
+        end
+
+        private
+        def normalize_helper_name(name)
+          name.to_s.strip.downcase.to_sym
         end
       end
+
+      # This gives us all built-in Rails helpers, whether they're refined or not; our re-declarations of helpers,
+      # below, will override any of these. We need to grab all built-in Rails helpers because we want them all
+      # formally declared -- that is, even if +automatic_helper_access+ is set to +false+, built-in Rails helpers
+      # should still work properly.
+      declare_all_builtin_rails_helpers!
 
       # tags/
       # active_model_helper

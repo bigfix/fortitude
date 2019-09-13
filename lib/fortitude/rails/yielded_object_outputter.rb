@@ -4,8 +4,9 @@ module Fortitude
     class YieldedObjectOutputter < YIELDED_OBJECT_OUTPUTTER_SUPERCLASS
       class << self
         def wrap_block_as_needed(output_target, for_method_name, original_block, yielded_methods_to_output)
-          if original_block && yielded_methods_to_output
-            lambda do |yielded_object, *args|
+          if original_block && yielded_methods_to_output && original_block.arity > 0
+            lambda do |*args|
+              yielded_object = args.shift
               outputter = new(output_target, yielded_object, for_method_name, yielded_methods_to_output)
               original_block.call(outputter, *args)
             end
@@ -28,6 +29,9 @@ module Fortitude
       EMPTY_RETURN_VALUE = ''.freeze
 
       def method_missing(method_name, *args, &block)
+        method_name = method_name.to_sym
+        method_name = args.shift if method_name == :send
+
         if @method_names_hash[method_name.to_sym]
           if ::Fortitude::Rails::Helpers.is_yielding_helper?(method_name)
             block = ::Fortitude::Rails::YieldedObjectOutputter.wrap_block_as_needed(@output_target, method_name, block, @method_names_hash.keys)

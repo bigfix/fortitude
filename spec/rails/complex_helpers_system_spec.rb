@@ -6,6 +6,7 @@ describe "Rails complex helper support", :type => :rails do
       %r{OUTSIDE_BEFORE\s*<form.*action=\"/complex_helpers_system_spec/form_for_test\".*
         INSIDE_BEFORE\s*
         FIRST:\s*<input.*person_first_name.*/>\s*
+        MIDDLE:\s*<input.*person_middle_name.*/>\s*
         LAST:\s*<input.*person_last_name.*/>\s*
         INSIDE_AFTER\s*
         </form>\s*
@@ -36,6 +37,40 @@ describe "Rails complex helper support", :type => :rails do
         INSIDE_FORM_AFTER\s*
         </form>\s*
         OUTSIDE_AFTER}mix)
+  end
+
+  it "should render a block passed to a label correctly" do
+    # See https://stackoverflow.com/questions/6088348/passing-block-to-label-helper-in-rails3.
+    #
+    # With a brand-new install of Rails 3.1.12, and *without* Fortitude installed, the following ERb code:
+    #
+    # <%= form_for :person do |f| %>
+    #   <%= f.label(:name) do %>
+    #      Foo
+    #   <% end %>
+    # <% end %>
+    #
+    # ...results in the following output:
+    #
+    # Foo
+    # <label for="person_name">
+    # Foo
+    # </label></form>
+    #
+    # ...which is clearly incorrect. (In other words, the inner 'Foo' gets generated and picked up twice.)
+    #
+    # In Rails 3.2 and after, this has been fixed, and works perfectly.
+    skip "Rails 3.0/3.1 have a bug with blocks passed to form_for->label" if rails_server.actual_rails_version =~ /^3\.[01]\./
+
+    expect_match("label_block_test",
+      %r{<label.*person_name.*>\s*
+        Foo\s*
+        </label>}mix)
+  end
+
+  it "should allow implicitly carrying through things like IDs from one request to another" do
+    id = rand(1_000_000)
+    expect(rails_server.get("/carryover/#{id}")).to match(%r{Edit:\s*.*/carryover/#{id}/edit})
   end
 
   it "should cache based on a name properly" do

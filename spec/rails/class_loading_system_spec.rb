@@ -12,6 +12,9 @@ describe "Rails class-loading support", :type => :rails do
   it "should not create anonymous modules without the Views:: namespace for directories under app/views/" do
     expect_exception('some_namespace', 'NameError', /uninitialized constant SomeNamespace/)
     expect_exception('some_other_namespace', 'NameError', /uninitialized constant SomeNamespace/)
+  end
+
+  it "should create anonymous modules in the Views:: namespace for directories under app/views/" do
     expect_match('views_some_namespace', /Views::SomeNamespace/, :no_layout => true)
     expect_match('views_some_other_namespace', /Views::SomeNamespace::SomeOtherNamespace/, :no_layout => true)
   end
@@ -32,12 +35,23 @@ describe "Rails class-loading support", :type => :rails do
     expect_match('use_models_widget_from_view_widget', /about to run the models widget.*this is the models widget.*ran the models widget/)
   end
 
+  def expect_no_template_error(subpath, controller_name, view_name)
+    # Rails 5 changed this: see https://github.com/rails/rails/issues/20666, https://github.com/rails/rails/issues/19036.
+    if rails_server.actual_rails_version =~ /^5\./
+      regexp = /#{(controller_name + "_controller").camelize}##{view_name.underscore}/
+      expect_exception(subpath, 'ActionController::UnknownFormat', regexp)
+    else
+      regexp = /#{controller_name.underscore}\/#{view_name.underscore}/
+      expect_exception(subpath, 'ActionView::MissingTemplate', regexp)
+    end
+  end
+
   it "should not allow me to define widgets outside of app/views/" do
-    expect_exception('widget_defined_outside_app_views', 'ActionView::MissingTemplate', /class_loading_system_spec\/widget_defined_outside_app_views/)
+    expect_no_template_error('widget_defined_outside_app_views', 'class_loading_system_spec', 'widget_defined_outside_app_views')
   end
 
   it "should not let me define a widget in a file starting with an underscore, and use it for a view" do
-    expect_exception('underscore_view', 'ActionView::MissingTemplate', /class_loading_system_spec\/underscore_view/)
+    expect_no_template_error('underscore_view', 'class_loading_system_spec', 'underscore_view')
   end
 
   it "should prefer widgets defined in a file without an underscore to those with" do
